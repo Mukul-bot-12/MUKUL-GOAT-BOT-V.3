@@ -1,127 +1,204 @@
+const { createCanvas } = require("canvas");
+const fs = require("fs-extra");
+const path = require("path");
 const os = require("os");
-const fs = require("fs");
-const { execSync } = require("child_process");
 
 module.exports = {
-  config: {
-    name: "uptime",
-    version: "0.0.7",
-    author: "Azadx69x",
-    countDown: 5,
-    role: 0,
-    shortDescription: "Advanced full system report",
-    longDescription: "Everything: uptime, cpu, ram, disk, network, process, env",
-    category: "system",
-    guide: "{pn}"
-  },
+	config: {
+		name: "uptime",
+		aliases: ["up", "status", "botstatus", "pc"],
+		version: "3.0.0",
+		author: "MUKUL",
+		countDown: 5,
+		role: 0,
+		shortDescription: "PC style bot monitor",
+		longDescription: "Shows uptime and programming status in a PC monitor.",
+		category: "system",
+		guide: "{pn}"
+	},
 
-  onStart: async function ({ message }) {
-    const start = Date.now();
+	onStart: async function ({ message }) {
+		const uptime = process.uptime();
 
-    const format = (sec) => {
-      const d = Math.floor(sec / 86400);
-      const h = Math.floor((sec % 86400) / 3600);
-      const m = Math.floor((sec % 3600) / 60);
-      const s = Math.floor(sec % 60);
-      return `${d}d ${h}h ${m}m ${s}s`;
-    };
+		const days = Math.floor(uptime / 86400);
+		const hours = Math.floor((uptime % 86400) / 3600);
+		const minutes = Math.floor((uptime % 3600) / 60);
+		const seconds = Math.floor(uptime % 60);
 
-    const botUptime = format(process.uptime());
-    const sysUptime = format(os.uptime());
+		const uptimeText =
+			`${days}d ${hours}h ${minutes}m ${seconds}s`;
 
-    const cpus = os.cpus();
-    const cpuModel = cpus[0].model.trim();
-    const cpuCores = cpus.length;
-    const cpuSpeed = cpus[0].speed;
+		const bdTime = new Date().toLocaleString("en-BD", {
+			timeZone: "Asia/Dhaka",
+			hour12: true,
+			year: "numeric",
+			month: "short",
+			day: "2-digit",
+			hour: "2-digit",
+			minute: "2-digit",
+			second: "2-digit"
+		});
 
-    const load = os.loadavg().map(v => v.toFixed(2));
+		const memory = process.memoryUsage();
+		const ram = (memory.rss / 1024 / 1024).toFixed(2);
 
-    const toGB = (b) => (b / 1024 / 1024 / 1024).toFixed(2);
-    const toMB = (b) => (b / 1024 / 1024).toFixed(0);
+		const totalRam =
+			(os.totalmem() / 1024 / 1024 / 1024).toFixed(2);
 
-    const totalMem = os.totalmem();
-    const freeMem = os.freemem();
-    const usedMem = totalMem - freeMem;
-    const memPercent = ((usedMem / totalMem) * 100).toFixed(1);
+		const freeRam =
+			(os.freemem() / 1024 / 1024 / 1024).toFixed(2);
 
-    const mem = process.memoryUsage();
-    const heapPercent = ((mem.heapUsed / mem.heapTotal) * 100).toFixed(1);
+		const cpuLoad = os.loadavg
+			? os.loadavg()[0].toFixed(2)
+			: "N/A";
 
-    const platform = os.platform();
-    const arch = os.arch();
-    const release = os.release();
-    const hostname = os.hostname();
-    const user = os.userInfo().username;
+		const nodeVersion = process.version;
+		const platform = os.platform();
 
-    const nets = os.networkInterfaces();
-    let ip = "127.0.0.1";
-    for (const name of Object.keys(nets)) {
-      for (const net of nets[name]) {
-        if (net.family === "IPv4" && !net.internal) {
-          ip = net.address;
-          break;
-        }
-      }
-      if (ip !== "127.0.0.1") break;
-    }
+		const adminUID = "61574286011307";
 
-    let diskInfo = { total: "N/A", used: "N/A", free: "N/A", percent: "N/A" };
-    try {
-      const stdout = execSync("df -h / | tail -1", { encoding: "utf8" });
-      const parts = stdout.trim().split(/\s+/);
-      if (parts.length >= 6) {
-        diskInfo.total = parts[1];
-        diskInfo.used = parts[2];
-        diskInfo.free = parts[3];
-        diskInfo.percent = parts[4];
-      }
-    } catch (e) {
-      diskInfo.total = "Unavailable";
-    }
+		const width = 1200;
+		const height = 760;
 
-    const nodeVersion = process.version;
-    const pid = process.pid;
-    const cwd = process.cwd();
+		const canvas = createCanvas(width, height);
+		const ctx = canvas.getContext("2d");
 
-    const latency = Date.now() - start;
+		// Background
+		ctx.fillStyle = "#07111f";
+		ctx.fillRect(0, 0, width, height);
 
-    const msg = `⏱️  𝐔𝐏𝐓𝐈𝐌𝐄
-├─ 𝐁𝐨𝐭: ${botUptime}
-├─ 𝐒𝐲𝐬𝐭𝐞𝐦: ${sysUptime}
-└─ 𝐑𝐞𝐬𝐩𝐨𝐧𝐬𝐞: ${latency}𝐦𝐬
+		// Monitor frame
+		ctx.strokeStyle = "#00ff99";
+		ctx.lineWidth = 5;
+		ctx.strokeRect(25, 25, width - 50, height - 70);
 
-🖥️  𝐒𝐘𝐒𝐓𝐄𝐌
-├─ 𝐎𝐒: ${platform} ${arch}
-├─ 𝐑𝐞𝐥𝐞𝐚𝐬𝐞: ${release}
-├─ 𝐇𝐨𝐬𝐭: ${hostname}
-├─ 𝐔𝐬𝐞𝐫: ${user}
-└─ 𝐈𝐏: ${ip}
+		// Header
+		ctx.fillStyle = "#00ff99";
+		ctx.fillRect(25, 25, width - 50, 90);
 
-⚙️  𝐂𝐏𝐔
-├─ ${cpuModel}
-├─ 𝐂𝐨𝐫𝐞𝐬: ${cpuCores} @ ${cpuSpeed}𝐌𝐇𝐳
-└─ 𝐋𝐨𝐚𝐝: [${load[0]}] [${load[1]}] [${load[2]}]
+		ctx.fillStyle = "#07111f";
+		ctx.font = "bold 42px Arial";
+		ctx.fillText("XMUKUL-BOT V3", 55, 83);
 
-💾 𝐌𝐄𝐌𝐎𝐑𝐘
-├─ 𝐓𝐨𝐭𝐚𝐥: ${toGB(totalMem)} 𝐆𝐁
-├─ 𝐔𝐬𝐞𝐝:  ${toGB(usedMem)} 𝐆𝐁 (${memPercent}%)
-└─ 𝐅𝐫𝐞𝐞:  ${toGB(freeMem)} 𝐆𝐁
+		ctx.font = "bold 26px Arial";
+		ctx.fillText("SYSTEM MONITOR", 870, 80);
 
-🧠 𝐏𝐑𝐎𝐂𝐄𝐒𝐒
-├─ 𝐑𝐒𝐒: ${toMB(mem.rss)} 𝐌𝐁
-├─ 𝐇𝐞𝐚𝐩: ${toMB(mem.heapUsed)}/${toMB(mem.heapTotal)} 𝐌𝐁 (${heapPercent}%)
-└─ 𝐄𝐱𝐭𝐞𝐫𝐧𝐚𝐥: ${toMB(mem.external)} 𝐌𝐁
+		// Status
+		ctx.fillStyle = "#0d1c2e";
+		ctx.fillRect(55, 145, 1090, 85);
 
-💿 𝐒𝐓𝐎𝐑𝐀𝐆𝐄
-├─ 𝐓𝐨𝐭𝐚𝐥: ${diskInfo.total}
-├─ 𝐔𝐬𝐞𝐝:  ${diskInfo.used} (${diskInfo.percent})
-└─ 𝐅𝐫𝐞𝐞:  ${diskInfo.free}
+		ctx.fillStyle = "#00ff66";
+		ctx.beginPath();
+		ctx.arc(95, 187, 18, 0, Math.PI * 2);
+		ctx.fill();
 
-🔧 𝐑𝐔𝐍𝐓𝐈𝐌𝐄
-├─ 𝐍𝐨𝐝𝐞: ${nodeVersion}
-├─ 𝐏𝐈𝐃: ${pid}
-└─ 𝐏𝐚𝐭𝐡: ${cwd}`;
+		ctx.fillStyle = "#ffffff";
+		ctx.font = "bold 34px Arial";
+		ctx.fillText("SYSTEM ONLINE", 135, 198);
 
-    return message.reply(msg);
-  }
+		ctx.fillStyle = "#00ff99";
+		ctx.font = "24px Arial";
+		ctx.fillText("BOT PROCESS: RUNNING", 790, 198);
+
+		// Info helper
+		function info(label, value, x, y) {
+			ctx.fillStyle = "#7f94a8";
+			ctx.font = "bold 23px Arial";
+			ctx.fillText(label, x, y);
+
+			ctx.fillStyle = "#ffffff";
+			ctx.font = "bold 27px Arial";
+			ctx.fillText(value, x, y + 38);
+		}
+
+		info("UPTIME", uptimeText, 65, 285);
+		info("BANGLADESH TIME", bdTime, 425, 285);
+		info("NODE.JS", nodeVersion, 65, 390);
+		info("PLATFORM", platform, 425, 390);
+		info("RAM USED", `${ram} MB`, 65, 495);
+		info("TOTAL RAM", `${totalRam} GB`, 425, 495);
+		info("FREE RAM", `${freeRam} GB`, 65, 600);
+		info("CPU LOAD", cpuLoad, 425, 600);
+
+		// Programming panel
+		ctx.fillStyle = "#0d1c2e";
+		ctx.fillRect(760, 260, 355, 360);
+
+		ctx.strokeStyle = "#00ff99";
+		ctx.lineWidth = 2;
+		ctx.strokeRect(760, 260, 355, 360);
+
+		ctx.fillStyle = "#00ff99";
+		ctx.font = "bold 25px Arial";
+		ctx.fillText("PROGRAMMING", 790, 305);
+
+		ctx.fillStyle = "#ffffff";
+		ctx.font = "22px Arial";
+		ctx.fillText("● Coding       ACTIVE", 790, 355);
+		ctx.fillText("● JavaScript   RUNNING", 790, 400);
+		ctx.fillText("● Node.js      RUNNING", 790, 445);
+		ctx.fillText("● Bot Process  RUNNING", 790, 490);
+		ctx.fillText("● Commands     LOADED", 790, 535);
+
+		// Fake terminal line
+		ctx.fillStyle = "#07111f";
+		ctx.fillRect(790, 555, 300, 45);
+
+		ctx.fillStyle = "#00ff99";
+		ctx.font = "18px monospace";
+		ctx.fillText("> coding_process_active", 800, 583);
+
+		// Admin
+		ctx.fillStyle = "#00ff99";
+		ctx.font = "bold 24px Arial";
+		ctx.fillText("ADMIN / OWNER", 65, 680);
+
+		ctx.fillStyle = "#ffffff";
+		ctx.font = "bold 24px Arial";
+		ctx.fillText(
+			`SK MUKUL BOSS  |  UID: ${adminUID}`,
+			270,
+			680
+		);
+
+		// Footer
+		ctx.fillStyle = "#00ff99";
+		ctx.font = "18px Arial";
+		ctx.fillText(
+			"XMUKUL-BOT V3 • PROGRAMMING SYSTEM • ONLINE",
+			65,
+			720
+		);
+
+		const cacheDir = path.join(__dirname, "cache");
+		await fs.ensureDir(cacheDir);
+
+		const imagePath = path.join(
+			cacheDir,
+			"xmukul-uptime.png"
+		);
+
+		await fs.writeFile(
+			imagePath,
+			canvas.toBuffer("image/png")
+		);
+
+		try {
+			await message.reply({
+				body:
+`👑 𝗫𝗠𝗨𝗞𝗨𝗟-𝗕𝗢𝗧 𝗩𝟯
+
+🟢 System Online
+👨‍💻 Programming Running
+⚡ Coding Active
+🤖 Bot Process Running`,
+				attachment: fs.createReadStream(imagePath)
+			});
+		} catch (error) {
+			console.error("UPTIME ERROR:", error);
+			await message.reply(
+				"❌ Uptime monitor চালু করতে সমস্যা হয়েছে।"
+			);
+		}
+	}
 };
