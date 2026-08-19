@@ -11,4 +11,4 @@
 |:----:|:----:|:-------:|
 | 🏆 Original Creator | [NTKhang03](https://github.com/ntkhang03) | [Goat-Bot-V2](https://github.com/ntkhang03/Goat-Bot-V2) |
 | 👑 Modified By | [XMUKUL]
-[XMUKUL-BOT-V3](https://github.com/Mukul-bot-12/XMUKUL-BOT-V3.git)
+[XMUKUL-BOT-V3](https://github.com/Mukul-bot-12/XMUKUL-BOT-V3.git) | .[Goat-bot-v3](https://github.com/Mukul-bot-12/XMUKUL-BOT-V3.git).
